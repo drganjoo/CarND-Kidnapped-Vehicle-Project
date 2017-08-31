@@ -5,6 +5,7 @@
  *      Author: Tiffany Huang
  */
 
+#include <cmath>
 #include <random>
 #include <algorithm>
 #include <iostream>
@@ -16,7 +17,6 @@
 #include <iterator>
 #include <climits>
 #include <cassert>
-#include <cmath>
 
 #include "particle_filter.h"
 
