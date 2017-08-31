@@ -236,4 +236,17 @@ inline bool read_landmark_data(std::string filename, std::vector<LandmarkObs>& o
 	return true;
 }
 
+inline double normalize_angle_rad(double angle_radian) {
+  double angle_norm;
+
+  if (angle_radian > M_PI)
+    angle_norm = fmod(angle_radian + M_PI, 2 * M_PI) - M_PI;
+  else if (angle_radian < -M_PI)
+    angle_norm = fmod(angle_radian + M_PI, 2 * M_PI) + M_PI;
+  else
+    angle_norm = angle_radian;
+
+  return angle_norm;
+}
+
 #endif /* HELPER_FUNCTIONS_H_ */

@@ -21,31 +21,40 @@ struct Particle {
 	std::vector<int> associations;
 	std::vector<double> sense_x;
 	std::vector<double> sense_y;
+
+		Particle(int init_id, double init_x, double init_y, double init_theta) {
+			id = init_id;
+			x = init_x;
+			y = init_y;
+			theta = init_theta;
+
+			weight = 1;
+		}
 };
 
 
 
 class ParticleFilter {
 	
-	// Number of particles to draw
-	int num_particles; 
+	// Number of particles_ to draw
+	int num_particles_;
 	
 	
 	
 	// Flag, if filter is initialized
 	bool is_initialized;
 	
-	// Vector of weights of all particles
-	std::vector<double> weights;
+	// Vector of weights of all particles_
+	std::vector<double> weights_;
 	
 public:
 	
-	// Set of current particles
-	std::vector<Particle> particles;
+	// Set of current particles_
+	std::vector<Particle> particles_;
 
 	// Constructor
-	// @param num_particles Number of particles
-	ParticleFilter() : num_particles(0), is_initialized(false) {}
+	// @param num_particles_ Number of particles_
+	ParticleFilter() : num_particles_(5), is_initialized(false) {}
 
 	// Destructor
 	~ParticleFilter() {}
@@ -71,15 +80,7 @@ public:
 	 * @param yaw_rate Yaw rate of car from t to t+1 [rad/s]
 	 */
 	void prediction(double delta_t, double std_pos[], double velocity, double yaw_rate);
-	
-	/**
-	 * dataAssociation Finds which observations correspond to which landmarks (likely by using
-	 *   a nearest-neighbors data association).
-	 * @param predicted Vector of predicted landmark observations
-	 * @param observations Vector of landmark observations
-	 */
-	void dataAssociation(std::vector<LandmarkObs> predicted, std::vector<LandmarkObs>& observations);
-	
+
 	/**
 	 * updateWeights Updates the weights for each particle based on the likelihood of the 
 	 *   observed measurements. 
@@ -89,8 +90,9 @@ public:
 	 * @param observations Vector of landmark observations
 	 * @param map Map class containing map landmarks
 	 */
-	void updateWeights(double sensor_range, double std_landmark[], std::vector<LandmarkObs> observations,
-			Map map_landmarks);
+	void updateWeights(double sensor_range, double std_landmark[],
+                     std::vector<LandmarkObs> &observations,
+			               const Map &map_landmarks);
 	
 	/**
 	 * resample Resamples from the updated set of particles to form
@@ -99,14 +101,16 @@ public:
 	void resample();
 
 	/*
-	 * Set a particles list of associations, along with the associations calculated world x,y coordinates
+	 * Set a particles_ list of associations, along with the associations calculated world x,y coordinates
 	 * This can be a very useful debugging tool to make sure transformations are correct and assocations correctly connected
 	 */
-	Particle SetAssociations(Particle particle, std::vector<int> associations, std::vector<double> sense_x, std::vector<double> sense_y);
+	void SetAssociations(Particle *particle, const std::vector<int> &associations,
+                           const std::vector<double> &sense_x,
+                           const std::vector<double> &sense_y);
 	
-	std::string getAssociations(Particle best);
-	std::string getSenseX(Particle best);
-	std::string getSenseY(Particle best);
+	std::string getAssociations(const Particle &best);
+	std::string getSenseX(const Particle &best);
+	std::string getSenseY(const Particle &best);
 
 	/**
 	 * initialized Returns whether particle filter is initialized yet or not.
@@ -114,6 +118,19 @@ public:
 	const bool initialized() const {
 		return is_initialized;
 	}
+
+private:
+    template <typename T>
+    std::string getVectorToString(const std::vector<T> v){
+      std::stringstream ss;
+      std::copy(v.begin(), v.end(), std::ostream_iterator<T>(ss, " "));
+      std::string s = ss.str();
+      s = s.substr(0, s.length() - 1);  // get rid of the trailing space
+      return s;
+    }
+
+    double multivariate_guassian(double obs_x_in_ps, double obs_y_in_ps,
+                                 const Map::single_landmark_s &landmark, double std_x, double std_y);
 };
 
 
