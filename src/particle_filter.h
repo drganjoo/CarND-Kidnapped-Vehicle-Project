@@ -11,41 +11,73 @@
 
 #include "helper_functions.h"
 
+struct Point
+{
+	double x;
+	double y;
+
+	Point() = default;
+	
+	Point(double init_x, double init_y) {
+		x = init_x;
+		y = init_y;
+	}
+
+	inline double GetDistance(const Point &other) {
+		const double diff = x - other.x + y - other.y;
+		const double distance = sqrt(diff * diff);
+		return distance;
+	}
+
+	Point TranslateRotate(const Point &translate_by, double theta) {
+		assert(theta >= 0 && theta <= 2 * M_PI);
+
+		const double p_cos = cos(theta);
+		const double p_sin = sin(theta);
+
+		Point tr_point;
+		tr_point.x = translate_by.x + this->x * p_cos - this->y * p_sin;
+		tr_point.y = translate_by.y + this->x * p_sin + this->y * p_cos;
+
+		return tr_point;
+	}
+};
+
+struct Association
+{
+	Point pt;
+	int landmark_index;
+};
+
 struct Particle {
 
 	int id;
-	double x;
-	double y;
+	Point location;
 	double theta;
 	double weight;
-	std::vector<int> associations;
-	std::vector<double> sense_x;
-	std::vector<double> sense_y;
+	std::vector<Association> associations;
 
-		Particle(int init_id, double init_x, double init_y, double init_theta) {
-			id = init_id;
-			x = init_x;
-			y = init_y;
-			theta = init_theta;
+	Particle(int init_id, double init_x, double init_y, double init_theta) {
+		id = init_id;
+		location.x = init_x;
+		location.y = init_y;
+		theta = init_theta;
 
-			weight = 1;
-		}
+		weight = 1;
+	}
+
+	inline void SetAngle(double theta) {
+		this->theta = theta;
+	}
 };
 
 
 
 class ParticleFilter {
 	
-	// Number of particles_ to draw
-	int num_particles_;
-	
-	
-	
-	// Flag, if filter is initialized
+private:
+	const int NUM_PARTICLES = 5;
 	bool is_initialized;
-	
-	// Vector of weights of all particles_
-	std::vector<double> weights_;
 	
 public:
 	
@@ -54,7 +86,7 @@ public:
 
 	// Constructor
 	// @param num_particles_ Number of particles_
-	ParticleFilter() : num_particles_(5), is_initialized(false) {}
+	ParticleFilter() : is_initialized(false) {}
 
 	// Destructor
 	~ParticleFilter() {}
@@ -129,7 +161,7 @@ private:
       return s;
     }
 
-    double multivariate_guassian(double obs_x_in_ps, double obs_y_in_ps,
+    double multivariate_guassian(const Point &pt_in_ws,
                                  const Map::single_landmark_s &landmark, double std_x, double std_y);
 };
 
