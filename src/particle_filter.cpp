@@ -116,8 +116,12 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
 
 			assert(landmark_assoc.index >= 0);
 			
-			p.weight *= multivariate_guassian(landmark_assoc, map, std_landmark[0], std_landmark[1]);
+            const double obs_weight = multivariate_guassian(landmark_assoc, map, std_landmark[0], std_landmark[1]);
+            cout << "Observation Weight: " << std::scientific << obs_weight << endl;
+            p.weight *=  obs_weight;
 		}
+        
+        cout << "Final Weight: " << std::scientific << p.weight << endl;
 	}
 }
 
