@@ -10,6 +10,7 @@
 #define PARTICLE_FILTER_H_
 
 #include "helper_functions.h"
+#include <functional>
 
 struct Point
 {
@@ -23,51 +24,47 @@ struct Point
 		y = init_y;
 	}
 
-	inline double GetDistance(const Point &other) {
-		const double diff = x - other.x + y - other.y;
+	inline double GetDistance(double to_x, double to_y) {
+		const double diff = x - to_x + y - to_y;
 		const double distance = sqrt(diff * diff);
 		return distance;
-	}
-
-	Point TranslateRotate(const Point &translate_by, double theta) {
-		assert(theta >= 0 && theta <= 2 * M_PI);
-
-		const double p_cos = cos(theta);
-		const double p_sin = sin(theta);
-
-		Point tr_point;
-		tr_point.x = translate_by.x + this->x * p_cos - this->y * p_sin;
-		tr_point.y = translate_by.y + this->x * p_sin + this->y * p_cos;
-
-		return tr_point;
 	}
 };
 
 struct Association
 {
-	Point pt;
-	int landmark_index;
+	Point pt_in_ws;
+	int index;
 };
 
 struct Particle {
-
 	int id;
-	Point location;
+	double x;
+	double y;
 	double theta;
 	double weight;
 	std::vector<Association> associations;
 
 	Particle(int init_id, double init_x, double init_y, double init_theta) {
 		id = init_id;
-		location.x = init_x;
-		location.y = init_y;
+		x = init_x;
+		y = init_y;
 		theta = init_theta;
 
 		weight = 1;
 	}
 
-	inline void SetAngle(double theta) {
-		this->theta = theta;
+	Point TransformToWorldSpace(const LandmarkObs &obs) {
+		assert(theta >= -2 * M_PI && theta <= 2 * M_PI);
+
+		const double p_cos = cos(theta);
+		const double p_sin = sin(theta);
+
+		Point tr_point;
+		tr_point.x = this->x + obs.x * p_cos - obs.y * p_sin;
+		tr_point.y = this->y + obs.x * p_sin + obs.y * p_cos;
+
+		return tr_point;
 	}
 };
 
@@ -76,7 +73,7 @@ struct Particle {
 class ParticleFilter {
 	
 private:
-	const int NUM_PARTICLES = 5;
+	const unsigned int NUM_PARTICLES = 5;
 	bool is_initialized;
 	
 public:
@@ -132,14 +129,6 @@ public:
 	 */
 	void resample();
 
-	/*
-	 * Set a particles_ list of associations, along with the associations calculated world x,y coordinates
-	 * This can be a very useful debugging tool to make sure transformations are correct and assocations correctly connected
-	 */
-	void SetAssociations(Particle *particle, const std::vector<int> &associations,
-                           const std::vector<double> &sense_x,
-                           const std::vector<double> &sense_y);
-	
 	std::string getAssociations(const Particle &best);
 	std::string getSenseX(const Particle &best);
 	std::string getSenseY(const Particle &best);
@@ -152,17 +141,15 @@ public:
 	}
 
 private:
-    template <typename T>
-    std::string getVectorToString(const std::vector<T> v){
+	std::string getVectorToString(const std::vector<Association> &v, std::function<double (const Association &)> func){
       std::stringstream ss;
-      std::copy(v.begin(), v.end(), std::ostream_iterator<T>(ss, " "));
+	  std::transform(v.begin(), v.end(), std::ostream_iterator<double>(ss, " "), func);
       std::string s = ss.str();
       s = s.substr(0, s.length() - 1);  // get rid of the trailing space
       return s;
     }
 
-    double multivariate_guassian(const Point &pt_in_ws,
-                                 const Map::single_landmark_s &landmark, double std_x, double std_y);
+    double multivariate_guassian(const Association &association, const Map &map, double std_x, double std_y);
 };
 
 

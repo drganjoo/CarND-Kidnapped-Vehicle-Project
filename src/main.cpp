@@ -29,6 +29,34 @@ int main()
 {
   uWS::Hub h;
 
+  Particle p(1, 102, 65, 5 * M_PI / 8.0);
+  ParticleFilter pft;
+  pft.particles_.push_back(p);
+  double std[3] = { 0.3, 0.3, 0.01 }; // GPS measurement uncertainty [x [m], y [m], theta [rad]]
+  pft.prediction(0.1, std, 110, M_PI / 8);
+
+  p.x = 4;
+  p.y = 5;
+  p.theta = -M_PI / 2.0;
+  Point p2 = p.TransformToWorldSpace(LandmarkObs(2, 2));
+  Point p21 = p.TransformToWorldSpace(LandmarkObs(3, -2));
+  Point p22 = p.TransformToWorldSpace(LandmarkObs(0, -4));
+
+  Map m;
+  if (!read_map_data("../data/map_data_temp.txt", m)) {
+	  cout << "Error: Could not open map file" << endl;
+	  return -1;
+  }
+
+  double s_landmark[2] = { 0, 0 }; // Landmark measurement uncertainty [x [m], y [m]]
+  vector<LandmarkObs> obs;
+  obs.push_back(LandmarkObs(2, 2));
+  obs.push_back(LandmarkObs(3, -2));
+  obs.push_back(LandmarkObs(0, -4));
+
+  pft.updateWeights(100, s_landmark, obs, m);
+
+
   //Set up parameters here
   double delta_t = 0.1; // Time elapsed between measurements [sec]
   double sensor_range = 50; // Sensor range [m]
