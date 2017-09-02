@@ -49,7 +49,7 @@ void ParticleFilter::prediction(double delta_t, double std_pos[], double velocit
     PredictWithYawRate(delta_t, std_pos, velocity, yaw_rate);
   }
 
-  // add rangome gaussian noise to each particle's X & Y position
+  // add random gaussian noise to each particle's X & Y position
   random_device rd;
   mt19937 gen(rd());
 
@@ -115,8 +115,6 @@ Association ParticleFilter::FindNearestLandmark(const Particle &p, LandmarkObs &
 void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
 																	 std::vector<LandmarkObs> &observations,
 																	 const Map &map) {
-  ExecTime t;
-
 	for (auto &p : particles_) {
     p.associations.clear();
 
@@ -130,8 +128,6 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
       p.weight *=  obs_weight;
     }
 	}
-
-  cout << "Time weights: " << t.End() << endl;
 }
 
 void ParticleFilter::resample() {

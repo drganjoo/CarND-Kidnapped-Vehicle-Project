@@ -44,12 +44,18 @@ struct Particle {
     double weight;
     std::vector<Association> associations;
 
+    Particle() {
+    }
+
     Particle(int init_id, double init_x, double init_y, double init_theta) {
+      Initialize(init_id, init_x, init_y, init_theta);
+    }
+
+    void Initialize(int init_id, double init_x, double init_y, double init_theta) {
       id = init_id;
       x = init_x;
       y = init_y;
       theta = init_theta;
-
       weight = 1;
     }
 
@@ -71,7 +77,7 @@ struct Particle {
 class ParticleFilter {
 
 private:
-    const unsigned int NUM_PARTICLES = 5;
+    static const unsigned int NUM_PARTICLES = 5;
     bool is_initialized;
 
 public:
@@ -81,7 +87,8 @@ public:
 
     // Constructor
     // @param num_particles_ Number of particles_
-    ParticleFilter() : is_initialized(false) {}
+    ParticleFilter() : is_initialized(false){
+    }
 
     // Destructor
     ~ParticleFilter() {}
