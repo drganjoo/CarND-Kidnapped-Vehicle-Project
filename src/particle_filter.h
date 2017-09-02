@@ -23,7 +23,7 @@ struct Point {
       y = init_y;
     }
 
-    inline double GetDistance(double x2, double y2) const {
+    inline double getDistance(double x2, double y2) const {
       const double diff = (x2 - x) * (x2 - x) + (y2 - y) * (y2 - y);
       const double distance = sqrt(diff);
       return distance;
@@ -59,7 +59,7 @@ struct Particle {
       weight = 1;
     }
 
-    Point TransformToWorldSpace(const LandmarkObs &obs) const {
+    Point transformToWorldSpace(const LandmarkObs &obs) const {
       //assert(theta >= -2 * M_PI && theta <= 2 * M_PI);
 
       const double p_cos = cos(theta);
@@ -147,7 +147,6 @@ public:
       return is_initialized;
     }
 
-    ExecTime timing;
 private:
     std::string getVectorToString(const std::vector<Association> &v, std::function<double(const Association &)> func) {
       std::stringstream ss;
@@ -157,12 +156,12 @@ private:
       return s;
     }
 
-    double MultivariateGaussian(const Point &obs_in_ws, const Point &landmark_pt, double std[]);
+    double multivariateGaussian(const Point &obs_in_ws, const Point &landmark_pt, double *std);
 
-    void PredictWithYawRate(double delta_t, const double *std_pos, double velocity, double yaw_rate);
-    void Predict(double delta_t, const double *std_pos, double velocity);
+    void predictWithYawRate(double delta_t, const double *std_pos, double velocity, double yaw_rate);
+    void predictWithoutYaw(double delta_t, const double *std_pos, double velocity);
 
-    Association FindNearestLandmark(const Particle &p, LandmarkObs &obs, double sensor_range,
+    Association findNearestLandmark(const Particle &p, LandmarkObs &obs, double sensor_range,
                                     const Map &map);
 };
 

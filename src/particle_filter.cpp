@@ -43,10 +43,10 @@ void ParticleFilter::prediction(double delta_t, double std_pos[], double velocit
   assert(particles_.size() == NUM_PARTICLES);
 
   if (yaw_rate == 0) {
-    Predict(delta_t, std_pos, velocity);
+    predictWithoutYaw(delta_t, std_pos, velocity);
   }
   else {
-    PredictWithYawRate(delta_t, std_pos, velocity, yaw_rate);
+    predictWithYawRate(delta_t, std_pos, velocity, yaw_rate);
   }
 
   // add random gaussian noise to each particle's X & Y position
@@ -64,7 +64,7 @@ void ParticleFilter::prediction(double delta_t, double std_pos[], double velocit
   }
 }
 
-void ParticleFilter::PredictWithYawRate(double delta_t, const double *std_pos, double velocity, double yaw_rate) {
+void ParticleFilter::predictWithYawRate(double delta_t, const double *std_pos, double velocity, double yaw_rate) {
   const double vel_per_rate = velocity / yaw_rate;
 
   for (auto &p : particles_) {
@@ -76,7 +76,7 @@ void ParticleFilter::PredictWithYawRate(double delta_t, const double *std_pos, d
   }
 }
 
-void ParticleFilter::Predict(double delta_t, const double *std_pos, double velocity) {
+void ParticleFilter::predictWithoutYaw(double delta_t, const double *std_pos, double velocity) {
   for (auto &p : particles_) {
     const double v_dt = velocity * delta_t;
 
@@ -86,10 +86,10 @@ void ParticleFilter::Predict(double delta_t, const double *std_pos, double veloc
 }
 
 
-Association ParticleFilter::FindNearestLandmark(const Particle &p, LandmarkObs &obs, double sensor_range,
+Association ParticleFilter::findNearestLandmark(const Particle &p, LandmarkObs &obs, double sensor_range,
                                                 const Map &map){
   Association landmark_assoc;
-  landmark_assoc.obs_in_ws = p.TransformToWorldSpace(obs);
+  landmark_assoc.obs_in_ws = p.transformToWorldSpace(obs);
   landmark_assoc.landmark_id = 0;
 
   // find distances to each land mark
@@ -97,7 +97,7 @@ Association ParticleFilter::FindNearestLandmark(const Particle &p, LandmarkObs &
   double min_distance = INT_MAX;
 
   for (const auto &lm : map.landmark_list) {
-    const double distance = landmark_assoc.obs_in_ws.GetDistance(lm.x_f, lm.y_f);
+    const double distance = landmark_assoc.obs_in_ws.getDistance(lm.x_f, lm.y_f);
 
     if (distance < sensor_range && distance < min_distance) {
       min_distance = distance;
@@ -117,12 +117,13 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
 																	 const Map &map) {
 	for (auto &p : particles_) {
     p.associations.clear();
+    p.weight = 1;
 
     for (LandmarkObs &obs : observations) {
-      Association nearest_landmark = FindNearestLandmark(p, obs, sensor_range, map);
+      Association nearest_landmark = findNearestLandmark(p, obs, sensor_range, map);
       p.associations.push_back(nearest_landmark);
 
-      const double obs_weight = MultivariateGaussian(nearest_landmark.obs_in_ws,
+      const double obs_weight = multivariateGaussian(nearest_landmark.obs_in_ws,
                                                      nearest_landmark.landmark_location,
                                                      std_landmark);
       p.weight *=  obs_weight;
@@ -146,15 +147,10 @@ void ParticleFilter::resample() {
 
 	// change the particle samples for next time
 	particles_ = resampled;
-
-  for (auto &p : particles_)
-    p.weight = 1;
 }
 
 string ParticleFilter::getAssociations(const Particle &best) {
-  timing.Start();
-
-	std::stringstream ss;
+  std::stringstream ss;
 	std::transform(best.associations.begin(), best.associations.end(), ostream_iterator<double>(ss, " "),
                  [](const Association &a) {
                      return a.landmark_id;
@@ -169,13 +165,11 @@ string ParticleFilter::getSenseX(const Particle &best) {
 }
 
 string ParticleFilter::getSenseY(const Particle &best) {
-	string s = getVectorToString(best.associations, [](const Association &a) { return a.obs_in_ws.y; });
-  cout << "Timing: " << timing.End() << endl;
-  return s;
+	return getVectorToString(best.associations, [](const Association &a) { return a.obs_in_ws.y; });
 }
 
 
-double ParticleFilter::MultivariateGaussian(const Point &obs_in_ws, const Point &landmark_pt, double std[])
+double ParticleFilter::multivariateGaussian(const Point &obs_in_ws, const Point &landmark_pt, double *std)
 {
 	// calculate multivariate Gaussian
 	// e = ((x - mu_x) ** 2 / (2.0 * std_x ** 2)) + ((y - mu_y) ** 2 / (2.0 * std_y ** 2))
