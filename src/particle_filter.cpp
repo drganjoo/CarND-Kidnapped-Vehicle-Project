@@ -86,40 +86,30 @@ void ParticleFilter::Predict(double delta_t, const double *std_pos, double veloc
 }
 
 
-void ParticleFilter::FindAssociation(Particle *p, double sensor_range, double std_landmark[],
-                                     std::vector<LandmarkObs> &observations,
-                                     const Map &map){
-  p->associations.clear();
+Association ParticleFilter::FindNearestLandmark(const Particle &p, LandmarkObs &obs, double sensor_range,
+                                                const Map &map){
+  Association landmark_assoc;
+  landmark_assoc.obs_in_ws = p.TransformToWorldSpace(obs);
+  landmark_assoc.landmark_id = 0;
 
-  for (LandmarkObs &obs : observations) {
-    Association landmark_assoc;
-    landmark_assoc.obs_in_ws = p->TransformToWorldSpace(obs);
-    landmark_assoc.landmark_id = 0;
+  // find distances to each land mark
+  const auto count = map.landmark_list.size();
+  double min_distance = INT_MAX;
 
-    // find distances to each land mark
-    const auto count = map.landmark_list.size();
-    Point landmark_pt;
-    double min_distance = INT_MAX;
+  for (const auto &lm : map.landmark_list) {
+    const double distance = landmark_assoc.obs_in_ws.GetDistance(lm.x_f, lm.y_f);
 
-    for (const auto lm : map.landmark_list) {
-      const double distance = landmark_assoc.obs_in_ws.GetDistance(lm.x_f, lm.y_f);
+    if (distance < sensor_range && distance < min_distance) {
+      min_distance = distance;
 
-      if (distance < sensor_range && distance < min_distance) {
-        min_distance = distance;
-        landmark_assoc.landmark_id = lm.id_i;
-        landmark_pt.x = lm.x_f;
-        landmark_pt.y = lm.y_f;
-      }
+      landmark_assoc.landmark_id = lm.id_i;
+      landmark_assoc.landmark_location.x = lm.x_f;
+      landmark_assoc.landmark_location.y = lm.y_f;
     }
-
-    assert(landmark_assoc.landmark_id > 0);
-    p->associations.push_back(landmark_assoc);
-
-    const double obs_weight = multivariate_guassian(landmark_assoc.obs_in_ws, landmark_pt,
-                                                    std_landmark[0], std_landmark[1]);
-
-    p->weight *=  obs_weight;
   }
+
+  assert(landmark_assoc.landmark_id > 0);
+  return landmark_assoc;
 }
 
 void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
@@ -128,7 +118,17 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
   ExecTime t;
 
 	for (auto &p : particles_) {
-    FindAssociation(&p, sensor_range, std_landmark, observations, map);
+    p.associations.clear();
+
+    for (LandmarkObs &obs : observations) {
+      Association nearest_landmark = FindNearestLandmark(p, obs, sensor_range, map);
+      p.associations.push_back(nearest_landmark);
+
+      const double obs_weight = MultivariateGaussian(nearest_landmark.obs_in_ws,
+                                                     nearest_landmark.landmark_location,
+                                                     std_landmark);
+      p.weight *=  obs_weight;
+    }
 	}
 
   cout << "Time weights: " << t.End() << endl;
@@ -179,11 +179,14 @@ string ParticleFilter::getSenseY(const Particle &best) {
 }
 
 
-double ParticleFilter::multivariate_guassian(const Point &obs_in_ws, const Point &landmark_pt, double std_x, double std_y)
+double ParticleFilter::MultivariateGaussian(const Point &obs_in_ws, const Point &landmark_pt, double std[])
 {
 	// calculate multivariate Gaussian
 	// e = ((x - mu_x) ** 2 / (2.0 * std_x ** 2)) + ((y - mu_y) ** 2 / (2.0 * std_y ** 2))
 	// e = ((diff_x ** 2) / (2.0 * std_x ** 2)) + ((diff_y ** 2) / (2.0 * std_y ** 2))
+
+  const double std_x = std[0];
+  const double std_y = std[1];
 
 	const double diff_x = obs_in_ws.x - landmark_pt.x;
   const double diff_y = obs_in_ws.y - landmark_pt.y;

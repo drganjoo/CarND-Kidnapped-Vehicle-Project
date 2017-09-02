@@ -32,6 +32,7 @@ struct Point {
 
 struct Association {
     Point obs_in_ws;
+    Point landmark_location;
     int landmark_id;
 };
 
@@ -52,7 +53,7 @@ struct Particle {
       weight = 1;
     }
 
-    Point TransformToWorldSpace(const LandmarkObs &obs) {
+    Point TransformToWorldSpace(const LandmarkObs &obs) const {
       //assert(theta >= -2 * M_PI && theta <= 2 * M_PI);
 
       const double p_cos = cos(theta);
@@ -149,14 +150,13 @@ private:
       return s;
     }
 
-    double multivariate_guassian(const Point &obs_in_ws, const Point &landmark_pt, double std_x, double std_y);
+    double MultivariateGaussian(const Point &obs_in_ws, const Point &landmark_pt, double std[]);
 
     void PredictWithYawRate(double delta_t, const double *std_pos, double velocity, double yaw_rate);
     void Predict(double delta_t, const double *std_pos, double velocity);
 
-    void FindAssociation(Particle *p, double sensor_range, double std_landmark[],
-                                         std::vector<LandmarkObs> &observations,
-                                         const Map &map);
+    Association FindNearestLandmark(const Particle &p, LandmarkObs &obs, double sensor_range,
+                                    const Map &map);
 };
 
 
