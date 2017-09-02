@@ -17,47 +17,11 @@
 #include <iterator>
 #include <climits>
 #include <cassert>
-
+#include <thread>
 #include "particle_filter.h"
 
 using namespace std;
 
-
-class ExecTime
-{
-public:
-    ExecTime() {
-      struct timespec spec;
-      clock_gettime(CLOCK_MONOTONIC, &spec);
-      start  = spec.tv_sec;
-      start_us = spec.tv_nsec / 1.0e3;    // microseconds
-    }
-
-    double End() {
-      struct timespec spec;
-      clock_gettime(CLOCK_MONOTONIC, &spec);
-
-      end  = spec.tv_sec;
-      end_us = spec.tv_nsec / 1.0e3;    // microseconds
-
-      double diff;
-      if (end > start) {
-        // from the first second choose as many microseconds as they were left in it
-        // 4.7 seconds to 5.1 seconds is 400ms so we take 300ms from first
-
-        diff = 1000 * 1000 - start_us;
-        diff += end_us + (end - start - 1);
-      }
-      else
-        diff = end_us - start_us;
-
-      return diff;
-    }
-
-private:
-    time_t start, end;
-    double start_us, end_us;
-};
 
 void ParticleFilter::init(double x, double y, double theta, double std[]) {
   random_device rd;
@@ -76,7 +40,7 @@ void ParticleFilter::init(double x, double y, double theta, double std[]) {
 }
 
 void ParticleFilter::prediction(double delta_t, double std_pos[], double velocity, double yaw_rate) {
-  ExecTime timing;
+  assert(particles_.size() == NUM_PARTICLES);
 
   if (yaw_rate == 0) {
     Predict(delta_t, std_pos, velocity);
@@ -98,8 +62,6 @@ void ParticleFilter::prediction(double delta_t, double std_pos[], double velocit
     p.y = dist_y(gen);
     p.theta = dist_theta(gen);
   }
-
-  cout << "Time taken prediction: " << fixed << timing.End() << endl;
 }
 
 void ParticleFilter::PredictWithYawRate(double delta_t, const double *std_pos, double velocity, double yaw_rate) {
@@ -126,7 +88,7 @@ void ParticleFilter::Predict(double delta_t, const double *std_pos, double veloc
 void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
 																	 std::vector<LandmarkObs> &observations,
 																	 const Map &map) {
-  ExecTime timing;
+  ExecTime t;
 
 	for (auto &p : particles_) {
 		p.associations.clear();
@@ -158,14 +120,13 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
 			const double obs_weight = multivariate_guassian(landmark_assoc.obs_in_ws, landmark_pt,
                                                       std_landmark[0], std_landmark[1]);
 
-//			cout << "Observation Weight: " << std::scientific << obs_weight << endl;
 			p.weight *=  obs_weight;
 		}
 
-//		cout << "Final Weight: " << std::scientific << p.weight << fixed << endl;
+    //cout << "Final Weight: " << std::scientific << p.weight << fixed << endl;
 	}
 
-//  cout << "Time taken weight: " << fixed << timing.End() << endl;
+  cout << "Time weights: " << t.End() << endl;
 }
 
 void ParticleFilter::resample() {
@@ -190,6 +151,8 @@ void ParticleFilter::resample() {
 }
 
 string ParticleFilter::getAssociations(const Particle &best) {
+  timing.Start();
+
 	std::stringstream ss;
 	std::transform(best.associations.begin(), best.associations.end(), ostream_iterator<double>(ss, " "),
                  [](const Association &a) {
@@ -205,7 +168,9 @@ string ParticleFilter::getSenseX(const Particle &best) {
 }
 
 string ParticleFilter::getSenseY(const Particle &best) {
-	return getVectorToString(best.associations, [](const Association &a) { return a.obs_in_ws.y; });
+	string s = getVectorToString(best.associations, [](const Association &a) { return a.obs_in_ws.y; });
+  cout << "Timing: " << timing.End() << endl;
+  return s;
 }
 
 

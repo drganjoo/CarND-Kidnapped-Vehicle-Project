@@ -257,4 +257,44 @@ inline double normalize_angle_rad(double angle_radian) {
   return angle_norm;
 }
 
+class ExecTime
+{
+public:
+		ExecTime() {
+      Start();
+		}
+
+    void Start() {
+      struct timespec spec;
+      clock_gettime(CLOCK_MONOTONIC, &spec);
+      start  = spec.tv_sec;
+      start_us = spec.tv_nsec / 1.0e3;    // microseconds
+    }
+
+		double End() {
+			struct timespec spec;
+			clock_gettime(CLOCK_MONOTONIC, &spec);
+
+			end  = spec.tv_sec;
+			end_us = spec.tv_nsec / 1.0e3;    // microseconds
+
+			double diff;
+			if (end > start) {
+				// from the first second choose as many microseconds as they were left in it
+				// 4.7 seconds to 5.1 seconds is 400ms so we take 300ms from first
+
+				diff = 1000 * 1000 - start_us;
+				diff += end_us + (end - start - 1);
+			}
+			else
+				diff = end_us - start_us;
+
+			return diff;
+		}
+
+private:
+		time_t start, end;
+		double start_us, end_us;
+};
+
 #endif /* HELPER_FUNCTIONS_H_ */

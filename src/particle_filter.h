@@ -70,7 +70,7 @@ struct Particle {
 class ParticleFilter {
 
 private:
-    const unsigned int NUM_PARTICLES = 3;
+    const unsigned int NUM_PARTICLES = 5;
     bool is_initialized;
 
 public:
@@ -139,6 +139,7 @@ public:
       return is_initialized;
     }
 
+    ExecTime timing;
 private:
     std::string getVectorToString(const std::vector<Association> &v, std::function<double(const Association &)> func) {
       std::stringstream ss;
