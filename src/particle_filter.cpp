@@ -65,13 +65,13 @@ void ParticleFilter::prediction(double delta_t, double std_pos[], double velocit
 }
 
 void ParticleFilter::predictWithYawRate(double delta_t, const double *std_pos, double velocity, double yaw_rate) {
-  const double vel_per_rate = velocity / yaw_rate;
+  const double radius = velocity / yaw_rate;
 
   for (auto &p : particles_) {
     const double heading_yaw_dt = p.theta + (yaw_rate * delta_t);
 
-    p.x += vel_per_rate * (sin(heading_yaw_dt) - sin(p.theta));
-    p.y += vel_per_rate * (cos(p.theta) - cos(heading_yaw_dt));
+    p.x += radius * (sin(heading_yaw_dt) - sin(p.theta));
+    p.y += radius * (cos(p.theta) - cos(heading_yaw_dt));
     p.theta += yaw_rate * delta_t;
   }
 }
@@ -91,6 +91,11 @@ Association ParticleFilter::findNearestLandmark(const Particle &p, LandmarkObs &
   Association landmark_assoc;
   landmark_assoc.obs_in_ws = p.transformToWorldSpace(obs);
   landmark_assoc.landmark_id = 0;
+
+  // set big initial values for the landmark location so that if there is no
+  // nearest landmark found the weight will automatically be set to 0
+  landmark_assoc.landmark_location.x = landmark_assoc.obs_in_ws.x * 1000;
+  landmark_assoc.landmark_location.y = landmark_assoc.obs_in_ws.y * 1000;
 
   // find distances to each land mark
   const auto count = map.landmark_list.size();
@@ -146,7 +151,7 @@ void ParticleFilter::resample() {
 	}
 
 	// change the particle samples for next time
-	particles_ = resampled;
+	particles_ = std::move(resampled);
 }
 
 string ParticleFilter::getAssociations(const Particle &best) {
