@@ -153,6 +153,10 @@ private:
 
     void PredictWithYawRate(double delta_t, const double *std_pos, double velocity, double yaw_rate);
     void Predict(double delta_t, const double *std_pos, double velocity);
+
+    void FindAssociation(Particle *p, double sensor_range, double std_landmark[],
+                                         std::vector<LandmarkObs> &observations,
+                                         const Map &map);
 };
 
 

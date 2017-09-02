@@ -85,45 +85,50 @@ void ParticleFilter::Predict(double delta_t, const double *std_pos, double veloc
   }
 }
 
+
+void ParticleFilter::FindAssociation(Particle *p, double sensor_range, double std_landmark[],
+                                     std::vector<LandmarkObs> &observations,
+                                     const Map &map){
+  p->associations.clear();
+
+  for (LandmarkObs &obs : observations) {
+    Association landmark_assoc;
+    landmark_assoc.obs_in_ws = p->TransformToWorldSpace(obs);
+    landmark_assoc.landmark_id = 0;
+
+    // find distances to each land mark
+    const auto count = map.landmark_list.size();
+    Point landmark_pt;
+    double min_distance = INT_MAX;
+
+    for (const auto lm : map.landmark_list) {
+      const double distance = landmark_assoc.obs_in_ws.GetDistance(lm.x_f, lm.y_f);
+
+      if (distance < sensor_range && distance < min_distance) {
+        min_distance = distance;
+        landmark_assoc.landmark_id = lm.id_i;
+        landmark_pt.x = lm.x_f;
+        landmark_pt.y = lm.y_f;
+      }
+    }
+
+    assert(landmark_assoc.landmark_id > 0);
+    p->associations.push_back(landmark_assoc);
+
+    const double obs_weight = multivariate_guassian(landmark_assoc.obs_in_ws, landmark_pt,
+                                                    std_landmark[0], std_landmark[1]);
+
+    p->weight *=  obs_weight;
+  }
+}
+
 void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
 																	 std::vector<LandmarkObs> &observations,
 																	 const Map &map) {
   ExecTime t;
 
 	for (auto &p : particles_) {
-		p.associations.clear();
-
-		for (LandmarkObs &obs : observations) {
-			Association landmark_assoc;
-			landmark_assoc.obs_in_ws = p.TransformToWorldSpace(obs);
-			landmark_assoc.landmark_id = 0;
-
-			// find distances to each land mark
-			const auto count = map.landmark_list.size();
-      Point landmark_pt;
-      double min_distance = INT_MAX;
-
-      for (const auto lm : map.landmark_list) {
-				const double distance = landmark_assoc.obs_in_ws.GetDistance(lm.x_f, lm.y_f);
-
-				if (distance < sensor_range && distance < min_distance) {
-					min_distance = distance;
-					landmark_assoc.landmark_id = lm.id_i;
-          landmark_pt.x = lm.x_f;
-          landmark_pt.y = lm.y_f;
-				}
-			}
-
-      assert(landmark_assoc.landmark_id > 0);
-			p.associations.push_back(landmark_assoc);
-
-			const double obs_weight = multivariate_guassian(landmark_assoc.obs_in_ws, landmark_pt,
-                                                      std_landmark[0], std_landmark[1]);
-
-			p.weight *=  obs_weight;
-		}
-
-    //cout << "Final Weight: " << std::scientific << p.weight << fixed << endl;
+    FindAssociation(&p, sensor_range, std_landmark, observations, map);
 	}
 
   cout << "Time weights: " << t.End() << endl;
