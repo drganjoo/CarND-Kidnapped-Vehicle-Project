@@ -28,25 +28,11 @@ std::string hasData(std::string s) {
 int main()
 {
     uWS::Hub h;
-    
-    Map m;
-    if (!read_map_data("../../data/map_data_temp.txt", m)) {
-        cout << "Error: Could not open map file" << endl;
-        return -1;
-    }
-    
-    Particle p(1, 4, 5, - M_PI / 2);
-    ParticleFilter pft;
-    pft.particles_.push_back(p);
-    
-    double s_landmark[2] = { 0.3, 0.3 }; // Landmark measurement uncertainty [x [m], y [m]]
-    vector<LandmarkObs> obs;
-    obs.push_back(LandmarkObs(2, 2));
-    obs.push_back(LandmarkObs(3, -2));
-    obs.push_back(LandmarkObs(0, -4));
-    
-    pft.updateWeights(100, s_landmark, obs, m);
-    
+
+//  char buffer[512];
+//  getcwd(buffer, sizeof(buffer));
+
+
     //Set up parameters here
     double delta_t = 0.1; // Time elapsed between measurements [sec]
     double sensor_range = 50; // Sensor range [m]
